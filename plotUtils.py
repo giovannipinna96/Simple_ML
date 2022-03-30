@@ -1,11 +1,12 @@
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+import matplotlib
+from distutils.version import LooseVersion
 
 import numpy as np
 
 
-def plot_decision_regions(X, y, classifier, resolution=0.02):
-
+def plot_decision_regions(X, y, classifier, resolution=0.02, test_idx=None):
     # setup marker generator and color map
     markers = ('s', 'o', 'x', '^', 'v')
     colors = ('red', 'blue', 'lightgreen', 'gray', 'cyan')
@@ -32,3 +33,27 @@ def plot_decision_regions(X, y, classifier, resolution=0.02):
                     label=cl,
                     edgecolor='black')
 
+    if test_idx:
+        # plot all examples
+        X_test, y_test = X[test_idx, :], y[test_idx]
+
+        if LooseVersion(matplotlib.__version__) < LooseVersion('0.3.4'):
+            plt.scatter(X_test[:, 0],
+                        X_test[:, 1],
+                        c='',
+                        edgecolor='black',
+                        alpha=1.0,
+                        linewidth=1,
+                        marker='o',
+                        s=100,
+                        label='test set')
+        else:
+            plt.scatter(X_test[:, 0],
+                        X_test[:, 1],
+                        c='none',
+                        edgecolor='black',
+                        alpha=1.0,
+                        linewidth=1,
+                        marker='o',
+                        s=100,
+                        label='test set')
