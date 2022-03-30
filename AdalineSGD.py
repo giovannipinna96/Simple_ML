@@ -1,11 +1,10 @@
-from Perceptron import Perceptron
+from AdalineGD import AdalineGD
 import numpy as np
 
 
-class AdalineSG(Perceptron):
+class AdalineSGD(AdalineGD):
     def __init__(self, eta=0.01, n_iter=50, random_state=None, shuffle=True):
-        super().__init__(self, eta, n_iter)
-        self.random_state = random_state
+        super().__init__(eta, n_iter, random_state=random_state)
         self.cost_ = None
         self.w_initialized = False
         self.shuffle = shuffle
@@ -43,13 +42,9 @@ class AdalineSG(Perceptron):
         self.w_initialized = True
 
     def _update_weights(self, xi, target):
-        output = self._activation(self.net_input(xi))
+        output = self.activation(self.net_input(xi))
         error = (target - output)
         self.w_[1:] += self.eta * xi.dot(error)
         self.w_[0] += self.eta * error
         cost = 0.5 * error ** 2
         return cost
-
-    @staticmethod
-    def _activation(X):
-        return X
