@@ -1,13 +1,16 @@
 import numpy as np
 import streamlit as st
 import Data
-import plotUtils
 from appUtils import get_classifier
 
-from matplotlib.colors import ListedColormap
 from sklearn.metrics import accuracy_score
 from sklearn.decomposition import PCA
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
 import matplotlib.pyplot as plt
+
+from mlxtend.plotting import plot_decision_regions
 
 st.title("Simple interactive dashboard for simple ML with standard dataset")
 st.write("""
@@ -23,21 +26,29 @@ classifier_name = st.sidebar.selectbox("Select classifier",
                                        ("Perceptron", "Adeline SGD", "SVM", "KNN", "Random Forest"))
 st.write(f"Classifier : {classifier_name}")
 
-if dataset_name == "Iris":
-    X_train, X_test, y_train, y_test = Data.load_split_iris(test_size=0.3, shuffle=False)
-elif dataset_name == "Breast Cancer":
-    X_train, X_test, y_train, y_test = Data.load_split_besast_cancer_wisconsin(test_size=0.3)
-else:
-    X_train, X_test, y_train, y_test = Data.load_split_wine(test_size=0.3)
+standardize = st.sidebar.radio("Do you want standardize the data?", ("Yes", "No"))
+st.write(f"Are data standardize? : {standardize}")
 
-X = np.vstack((X_train, X_test))
-y = np.hstack((y_train, y_test))
+if dataset_name == "Iris":
+    X, y = Data.load_iris_dataset()
+elif dataset_name == "Breast Cancer":
+    X, y = Data.load_besast_cancer_wisconsin_dataset()
+else:
+    X, y = Data.load_wine_dataset()
+
+if standardize == "Yes":
+    sc = StandardScaler()
+    sc.fit(X)
+    X = sc.transform(X)
 
 # Plot PCA of the original dataset
 pca = PCA(n_components=2)
 X_projected = pca.fit_transform(X)
+X_projected_train, X_projected_test, y_projected_train, y_projected_test = train_test_split(X_projected, y,
+                                                                                            test_size=0.3)
 x1 = X_projected[:, 0]
 x2 = X_projected[:, 1]
+X_combined = np.column_stack((x1, x2))
 
 st.write(
     f"The dataset has {X.shape[0]} rows and {X.shape[1]} columns ")
@@ -70,53 +81,38 @@ params = add_paramiters_ui(classifier_name)
 clf = get_classifier(classifier_name, params)
 
 # Classification
-clf.fit(X_train, y_train)
-y_pred = clf.predict(X_test)
+clf.fit(X_projected_train, y_projected_train)
+y_pred = clf.predict(X_projected_test)
 
 # calculate accuracy
-acc = accuracy_score(y_test, y_pred)
+acc = accuracy_score(y_projected_test, y_pred)
 
 # write data
 st.write(f"Accuracy : {acc}")
+st.write("""## Graphs : """)
 
 fig = plt.figure()
 plt.scatter(x1, x2, c=y, alpha=0.8, cmap="viridis")
+plt.title("Graph of the data on which the PCA has been applied (dimensionality reduction)")
 plt.xlabel("PCA 1")
 plt.ylabel("PCA 2")
 plt.colorbar()
-
+plt.tight_layout()
 st.pyplot(fig)
 
-# Plot dataset with classifier regions
-fig2 = plt.figure()
-# setup marker generator and color map
-markers = ('s', 'o', 'x', '^', 'v')
-colors = ('red', 'blue', 'lightgreen', 'gray', 'cyan')
-cmap = ListedColormap(colors[:len(np.unique(y))])
-
-# plot the decision surface
-x1_min, x1_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-x2_min, x2_max = X[:, 1].min() - 1, X[:, 1].max() + 1
-xx1, xx2 = np.meshgrid(np.arange(x1_min, x1_max, 0.02),
-                       np.arange(x2_min, x2_max, 0.02))
-Z = clf.predict(np.array([xx1.ravel(), xx2.ravel()]).T)
-Z = Z.reshape(xx1.shape)
-plt.contourf(xx1, xx2, Z, alpha=0.3, cmap=cmap)
-plt.xlim(xx1.min(), xx1.max())
-plt.ylim(xx2.min(), xx2.max())
-
-# plot class examples
-for idx, cl in enumerate(np.unique(y)):
-    plt.scatter(x=X[y == cl, 0],
-                y=X[y == cl, 1],
-                alpha=0.8,
-                c=colors[idx],
-                marker=markers[idx],
-                label=cl,
-                edgecolor='black')
-plt.xlabel('petal length [standardized]')
-plt.ylabel('petal width [standardized]')
-# plt.title('Logistic Regression')
-plt.legend(loc='upper left')
-plt.tight_layout()
-st.pyplot(fig2)
+if acc == 0:
+    st.write(""" ## Attention : """)
+    st.write(
+        "The graph is not displayed because the accuracy is zero. Unfortunately, the classifier is not suitable for "
+        "classifying the dataset or the parameters entered are poor. Try with another classifier or with other "
+        "parameters or trying to standardize the data !! :-)")
+else:
+    # Plot dataset with classifier regions
+    fig2 = plt.figure()
+    plot_decision_regions(X_combined, y, clf)
+    plt.xlabel('PCA1')
+    plt.ylabel('PCA2')
+    plt.title(f'Regions identified on the reduced dimensionality dataset by the classifier: {classifier_name}')
+    plt.legend(loc='upper left')
+    plt.tight_layout()
+    st.pyplot(fig2)
