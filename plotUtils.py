@@ -6,7 +6,7 @@ from distutils.version import LooseVersion
 import numpy as np
 
 
-def plot_decision_regions(X, y, classifier, resolution=0.02, test_idx=None):
+def plot_decision_regions(X, y, classifier, resolution=0.02, test_idx=range(105, 150)):
     # setup marker generator and color map
     markers = ('s', 'o', 'x', '^', 'v')
     colors = ('red', 'blue', 'lightgreen', 'gray', 'cyan')
